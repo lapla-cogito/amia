@@ -1,3 +1,5 @@
+use crate::{println, util::*};
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Process {
     pub pid: i64,
@@ -26,46 +28,46 @@ pub static mut CURRENT_PROC: *mut Process = core::ptr::null_mut();
 
 #[naked]
 #[no_mangle]
-pub unsafe extern "C" fn switch_context(prev_sp: &*mut u32, next_sp: &*mut u32) {
+pub unsafe extern "C" fn switch_context(prev_sp: &*mut u64, next_sp: &*mut u64) {
     core::arch::asm!(
         "
-        addi sp, sp, -13 * 4
-        sw ra,  0  * 4(sp)
-        sw s0,  1  * 4(sp)
-        sw s1,  2  * 4(sp)
-        sw s2,  3  * 4(sp)
-        sw s3,  4  * 4(sp)
-        sw s4,  5  * 4(sp)
-        sw s5,  6  * 4(sp)
-        sw s6,  7  * 4(sp)
-        sw s7,  8  * 4(sp)
-        sw s8,  9  * 4(sp)
-        sw s9,  10 * 4(sp)
-        sw s10, 11 * 4(sp)
-        sw s11, 12 * 4(sp)
-        sw sp, (a0)
-        lw sp, (a1)
-        lw ra,  0  * 4(sp)
-        lw s0,  1  * 4(sp)
-        lw s1,  2  * 4(sp)
-        lw s2,  3  * 4(sp)
-        lw s3,  4  * 4(sp)
-        lw s4,  5  * 4(sp)
-        lw s5,  6  * 4(sp)
-        lw s6,  7  * 4(sp)
-        lw s7,  8  * 4(sp)
-        lw s8,  9  * 4(sp)
-        lw s9,  10 * 4(sp)
-        lw s10, 11 * 4(sp)
-        lw s11, 12 * 4(sp)
-        addi sp, sp, 13 * 4
+        addi sp, sp, -13 * 8
+        sd ra,  0  * 8(sp)
+        sd s0,  1  * 8(sp)
+        sd s1,  2  * 8(sp)
+        sd s2,  3  * 8(sp)
+        sd s3,  4  * 8(sp)
+        sd s4,  5  * 8(sp)
+        sd s5,  6  * 8(sp)
+        sd s6,  7  * 8(sp)
+        sd s7,  8  * 8(sp)
+        sd s8,  9  * 8(sp)
+        sd s9,  10 * 8(sp)
+        sd s10, 11 * 8(sp)
+        sd s11, 12 * 8(sp)
+        sd sp, (a0)
+        ld sp, (a1)
+        ld ra,  0  * 8(sp)
+        ld s0,  1  * 8(sp)
+        ld s1,  2  * 8(sp)
+        ld s2,  3  * 8(sp)
+        ld s3,  4  * 8(sp)
+        ld s4,  5  * 8(sp)
+        ld s5,  6  * 8(sp)
+        ld s6,  7  * 8(sp)
+        ld s7,  8  * 8(sp)
+        ld s8,  9  * 8(sp)
+        ld s9,  10 * 8(sp)
+        ld s10, 11 * 8(sp)
+        ld s11, 12 * 8(sp)
+        addi sp, sp, 13 * 8
         ret
         ",
         options(noreturn)
     );
 }
 
-pub unsafe fn create_process(pc: u32) -> *mut Process {
+pub unsafe fn create_process(pc: u64) -> *mut Process {
     let mut proc = core::ptr::null_mut();
     let mut i = 0;
 
@@ -79,24 +81,25 @@ pub unsafe fn create_process(pc: u32) -> *mut Process {
 
     if !proc.is_null() {
         let sp = (&mut (*proc).stack as *mut [u8] as *mut u8)
-            .add(core::mem::size_of_val(&(*proc).stack)) as *mut u32;
-        sp.offset(-4).write(0); // s11
-        sp.offset(-8).write(0); // s10
-        sp.offset(-12).write(0); // s9
-        sp.offset(-16).write(0); // s8
-        sp.offset(-20).write(0); // s7
-        sp.offset(-24).write(0); // s6
-        sp.offset(-28).write(0); // s5
-        sp.offset(-32).write(0); // s4
-        sp.offset(-36).write(0); // s3
-        sp.offset(-40).write(0); // s2
-        sp.offset(-44).write(0); // s1
-        sp.offset(-48).write(0); // s0
-        sp.offset(-52).write(pc); // ra
+            .add(core::mem::size_of_val(&(*proc).stack)) as *mut u64;
+        sp.offset(-8).write(0); // s11
+        sp.offset(-16).write(0); // s10
+        sp.offset(-24).write(0); // s9
+        sp.offset(-32).write(0); // s8
+        sp.offset(-40).write(0); // s7
+        sp.offset(-48).write(0); // s6
+        sp.offset(-56).write(0); // s5
+        sp.offset(-64).write(0); // s4
+        sp.offset(-72).write(0); // s3
+        sp.offset(-80).write(0); // s2
+        sp.offset(-88).write(0); // s1
+        sp.offset(-96).write(0); // s0
+        sp.offset(-104).write(pc); // ra
 
         let page_table = crate::paging::alloc_pages(1);
         let mut paddr =
             core::ptr::addr_of!(crate::__kernel_base) as *const u8 as crate::types::PaddrT;
+
         while paddr
             < core::ptr::addr_of!(crate::__free_ram_end) as *const u8 as crate::types::PaddrT
         {
@@ -106,12 +109,12 @@ pub unsafe fn create_process(pc: u32) -> *mut Process {
                 paddr,
                 crate::constants::PAGE_R | crate::constants::PAGE_W | crate::constants::PAGE_X,
             );
-            paddr += crate::constants::PAGE_SIZE as u32;
+            paddr += crate::constants::PAGE_SIZE;
         }
 
         (*proc).pid = i as i64 + 1;
         (*proc).state = crate::constants::PROC_READY;
-        (*proc).sp = sp.offset(-52) as *mut u32;
+        (*proc).sp = sp.offset(-104);
         (*proc).page_table = page_table;
         proc
     } else {
@@ -141,11 +144,13 @@ pub unsafe fn yield_proc() {
     core::arch::asm!(
         "sfence.vma",
         "csrw satp, {satp}",
-        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE as u32) | crate::constants::SATP_SV32),
+        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE) | crate::constants::SATP_SV32),
     );
+
     crate::write_csr!(
         "sscratch",
-        (&mut (*next).stack as *mut [u8] as *mut u8).add(core::mem::size_of_val(&(*next).stack)) as *mut u32
+        (&mut (*next).stack as *mut [u8] as *mut u8).add(core::mem::size_of_val(&(*next).stack))
+            as *mut u64
     );
-    switch_context(&mut (*prev).sp, &(*next).sp)
+    switch_context(&(*prev).sp, &(*next).sp)
 }

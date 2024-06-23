@@ -1,13 +1,13 @@
 unsafe fn sbi_call(
-    mut arg0: usize,
-    mut arg1: usize,
-    arg2: usize,
-    arg3: usize,
-    arg4: usize,
-    arg5: usize,
-    fid: usize,
-    eid: usize,
-) -> Result<usize, crate::types::SbiErr> {
+    mut arg0: i64,
+    mut arg1: i64,
+    arg2: i64,
+    arg3: i64,
+    arg4: i64,
+    arg5: i64,
+    fid: i64,
+    eid: i64,
+) -> Result<i64, crate::types::SbiErr> {
     core::arch::asm!(
         "ecall",
         inout("a0") arg0 => arg0,
@@ -30,7 +30,7 @@ unsafe fn sbi_call(
 
 pub fn putchar(c: char) -> Result<(), crate::types::SbiErr> {
     unsafe {
-        let _res = sbi_call(c as usize, 0, 0, 0, 0, 0, 1, 1)?;
+        let _res = sbi_call(c as i64, 0, 0, 0, 0, 0, 1, 1)?;
     }
     Ok(())
 }
@@ -124,43 +124,43 @@ impl core::fmt::Write for Writer {
 #[repr(C)]
 #[repr(packed)]
 pub struct TrapFrame {
-    ra: u32,
-    gp: u32,
-    tp: u32,
-    t0: u32,
-    t1: u32,
-    t2: u32,
-    t3: u32,
-    t4: u32,
-    t5: u32,
-    t6: u32,
-    a0: u32,
-    a1: u32,
-    a2: u32,
-    a3: u32,
-    a4: u32,
-    a5: u32,
-    a6: u32,
-    a7: u32,
-    s0: u32,
-    s1: u32,
-    s2: u32,
-    s3: u32,
-    s4: u32,
-    s5: u32,
-    s6: u32,
-    s7: u32,
-    s8: u32,
-    s9: u32,
-    s10: u32,
-    s11: u32,
-    sp: u32,
+    ra: u64,
+    gp: u64,
+    tp: u64,
+    t0: u64,
+    t1: u64,
+    t2: u64,
+    t3: u64,
+    t4: u64,
+    t5: u64,
+    t6: u64,
+    a0: u64,
+    a1: u64,
+    a2: u64,
+    a3: u64,
+    a4: u64,
+    a5: u64,
+    a6: u64,
+    a7: u64,
+    s0: u64,
+    s1: u64,
+    s2: u64,
+    s3: u64,
+    s4: u64,
+    s5: u64,
+    s6: u64,
+    s7: u64,
+    s8: u64,
+    s9: u64,
+    s10: u64,
+    s11: u64,
+    sp: u64,
 }
 
 #[macro_export]
 macro_rules! read_csr {
     ($csr:literal) => {{
-        let mut val: u32;
+        let mut val: u64;
         unsafe {
             ::core::arch::asm!(concat!("csrr {}, ", $csr), out(reg) val);
         }

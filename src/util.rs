@@ -1,5 +1,3 @@
-use crate::constants::*;
-
 unsafe fn sbi_call(
     mut arg0: usize,
     mut arg1: usize,
@@ -9,7 +7,7 @@ unsafe fn sbi_call(
     arg5: usize,
     fid: usize,
     eid: usize,
-) -> Result<usize, SbiErr> {
+) -> Result<usize, crate::types::SbiErr> {
     core::arch::asm!(
         "ecall",
         inout("a0") arg0 => arg0,
@@ -23,14 +21,14 @@ unsafe fn sbi_call(
     );
 
     let err = arg0 as isize;
-    if err == SBI_SUCCESS {
+    if err == crate::constants::SBI_SUCCESS {
         Ok(arg1)
     } else {
-        Err(err)
+        Err(err as crate::types::SbiErr)
     }
 }
 
-pub fn putchar(c: char) -> Result<(), SbiErr> {
+pub fn putchar(c: char) -> Result<(), crate::types::SbiErr> {
     unsafe {
         let _res = sbi_call(c as usize, 0, 0, 0, 0, 0, 1, 1)?;
     }
@@ -45,7 +43,7 @@ pub fn memset(dest: *mut u8, val: u8, count: usize) {
     }
 }
 
-pub fn memcpy(dst: *mut core::ffi::c_void, src: *const core::ffi::c_void, n: SizeT) {
+pub fn memcpy(dst: *mut core::ffi::c_void, src: *const core::ffi::c_void, n: crate::types::SizeT) {
     unsafe {
         let mut p_dst = dst as *mut u8;
         let mut p_src = src as *const u8;
@@ -100,7 +98,7 @@ macro_rules! print {
 #[macro_export]
 macro_rules! println {
     ($($arg:tt)*) => ({
-        use crate::print;
+        use $crate::print;
         print!("{}\n", format_args!($($arg)*));
     });
 }
@@ -111,7 +109,7 @@ impl core::fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         for c in s.bytes() {
             unsafe {
-                asm!(
+                core::arch::asm!(
                     "ecall",
                     in("a0") c,
                     in("a6") 0,

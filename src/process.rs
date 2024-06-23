@@ -2,8 +2,8 @@
 pub struct Process {
     pub pid: i64,
     pub state: i64,
-    pub sp: *mut crate::constants::VaddrT,
-    pub page_table: crate::constants::PaddrT,
+    pub sp: *mut crate::types::VaddrT,
+    pub page_table: crate::types::PaddrT,
     pub stack: [u8; 8192],
 }
 
@@ -79,7 +79,7 @@ pub unsafe fn create_process(pc: u32) -> *mut Process {
 
     if !proc.is_null() {
         let sp = (&mut (*proc).stack as *mut [u8] as *mut u8)
-            .offset(core::mem::size_of_val(&(*proc).stack) as isize) as *mut u32;
+            .add(core::mem::size_of_val(&(*proc).stack)) as *mut u32;
         sp.offset(-4).write(0); // s11
         sp.offset(-8).write(0); // s10
         sp.offset(-12).write(0); // s9
@@ -96,9 +96,9 @@ pub unsafe fn create_process(pc: u32) -> *mut Process {
 
         let page_table = crate::paging::alloc_pages(1);
         let mut paddr =
-            core::ptr::addr_of!(crate::__kernel_base) as *const u8 as crate::constants::PaddrT;
+            core::ptr::addr_of!(crate::__kernel_base) as *const u8 as crate::types::PaddrT;
         while paddr
-            < core::ptr::addr_of!(crate::__free_ram_end) as *const u8 as crate::constants::PaddrT
+            < core::ptr::addr_of!(crate::__free_ram_end) as *const u8 as crate::types::PaddrT
         {
             crate::paging::map_page(
                 page_table,
@@ -123,7 +123,7 @@ pub unsafe fn yield_proc() {
     let mut next = IDLE_PROC;
     for i in 0..crate::constants::PROCS_MAX {
         let proc = &mut PROCS[(CURRENT_PROC.as_ref().unwrap().pid as usize).wrapping_add(i)
-            % crate::constants::PROCS_MAX as usize] as *mut Process;
+            % crate::constants::PROCS_MAX] as *mut Process;
 
         if (*proc).state == crate::constants::PROC_READY && (*proc).pid > 0 {
             next = proc;
@@ -141,12 +141,11 @@ pub unsafe fn yield_proc() {
     core::arch::asm!(
         "sfence.vma",
         "csrw satp, {satp}",
-        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE as u32) | crate::constants::SATP_SV32 as u32),
+        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE as u32) | crate::constants::SATP_SV32),
     );
     crate::write_csr!(
         "sscratch",
-        (&mut (*next).stack as *mut [u8] as *mut u8)
-            .offset(core::mem::size_of_val(&(*next).stack) as isize) as *mut u32
+        (&mut (*next).stack as *mut [u8] as *mut u8).add(core::mem::size_of_val(&(*next).stack)) as *mut u32
     );
     switch_context(&mut (*prev).sp, &(*next).sp)
 }

@@ -1,4 +1,4 @@
 pub struct Sbiret {
-    pub error: u32,
-    pub value: u32,
+    pub error: i64,
+    pub value: i64,
 }

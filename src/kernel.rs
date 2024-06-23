@@ -4,28 +4,22 @@
 #![feature(fn_align)]
 #![feature(naked_functions)]
 #![feature(asm_const)]
-#![feature(offset_of)]
 
 mod constants;
 mod paging;
 mod process;
 mod sbi;
+mod types;
 mod util;
 
-use crate::{
-    paging::NEXT_PADDR,
-    process::{yield_proc, CURRENT_PROC, IDLE_PROC},
-    util::*,
-};
-use core::{arch::asm, panic::PanicInfo, ptr::addr_of};
-use process::create_process;
+use crate::util::*;
 
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
+fn panic(info: &core::panic::PanicInfo) -> ! {
     println!("{info}");
     loop {
         unsafe {
-            asm!("wfi");
+            core::arch::asm!("wfi");
         }
     }
 }
@@ -33,7 +27,7 @@ fn panic(info: &PanicInfo) -> ! {
 extern "C" {
     static __bss: u8;
     static __bss_end: u8;
-    static __stack_top: u32;
+    static __stack_top: u64;
     static mut __free_ram: u8;
     static __free_ram_end: u8;
     static __kernel_base: u8;
@@ -43,9 +37,9 @@ fn proc_a_entry() {
     loop {
         let _res = putchar('A');
         unsafe {
-            yield_proc();
+            crate::process::yield_proc();
             for _ in 0..10000000 {
-                asm!("nop");
+                core::arch::asm!("nop");
             }
         }
     }
@@ -55,9 +49,9 @@ fn proc_b_entry() {
     loop {
         let _res = putchar('B');
         unsafe {
-            yield_proc();
+            crate::process::yield_proc();
             for _ in 0..10000000 {
-                asm!("nop");
+                core::arch::asm!("nop");
             }
         }
     }
@@ -71,16 +65,16 @@ fn kernel_main() {
             0,
             (__bss_end - __bss) as usize,
         );
-        NEXT_PADDR = addr_of!(__free_ram) as u32;
+        crate::paging::NEXT_PADDR = core::ptr::addr_of!(__free_ram) as u64;
         write_csr!("stvec", kernel_entry as usize);
 
-        IDLE_PROC = create_process(0);
-        (*IDLE_PROC).pid = -1;
-        CURRENT_PROC = IDLE_PROC;
+        crate::process::IDLE_PROC = crate::process::create_process(0);
+        (*(crate::process::IDLE_PROC)).pid = -1;
+        crate::process::CURRENT_PROC = crate::process::IDLE_PROC;
 
-        create_process(proc_a_entry as u32);
-        create_process(proc_b_entry as u32);
-        yield_proc();
+        crate::process::create_process(proc_a_entry as usize as u64);
+        crate::process::create_process(proc_b_entry as usize as u64);
+        crate::process::yield_proc();
     }
 
     unreachable!();
@@ -89,7 +83,7 @@ fn kernel_main() {
 #[no_mangle]
 #[link_section = ".text.boot"]
 pub unsafe extern "C" fn boot() -> ! {
-    asm!(
+    core::arch::asm!(
         "mv sp, {stack_top}
         j {kernel_main}",
         stack_top = in(reg) &__stack_top,
@@ -104,88 +98,89 @@ extern "C" fn handle_trap(_frame: TrapFrame) {
     let mut scause: u32;
     let mut stval: u32;
     let mut sepc: u32;
+
     unsafe {
-        asm!("csrr {}, scause", out(reg) scause);
-        asm!("csrr {}, stval", out(reg) stval);
-        asm!("csrr {}, sepc", out(reg) sepc);
+        core::arch::asm!("csrr {}, scause", out(reg) scause);
+        core::arch::asm!("csrr {}, stval", out(reg) stval);
+        core::arch::asm!("csrr {}, sepc", out(reg) sepc);
     }
     panic!("scause: {:x}, stval: {:x}, sepc: {:x}", scause, stval, sepc);
 }
 
 #[no_mangle]
 #[link_section = ".text.boot"]
-#[repr(align(4))]
+#[repr(align(8))]
 #[naked]
 pub unsafe extern "C" fn kernel_entry() {
-    asm!(
+    core::arch::asm!(
         "
         csrw sscratch, sp
         addi sp, sp, -4 * 31
-        sw ra,  4 * 0(sp)
-        sw gp,  4 * 1(sp)
-        sw tp,  4 * 2(sp)
-        sw t0,  4 * 3(sp)
-        sw t1,  4 * 4(sp)
-        sw t2,  4 * 5(sp)
-        sw t3,  4 * 6(sp)
-        sw t4,  4 * 7(sp)
-        sw t5,  4 * 8(sp)
-        sw t6,  4 * 9(sp)
-        sw a0,  4 * 10(sp)
-        sw a1,  4 * 11(sp)
-        sw a2,  4 * 12(sp)
-        sw a3,  4 * 13(sp)
-        sw a4,  4 * 14(sp)
-        sw a5,  4 * 15(sp)
-        sw a6,  4 * 16(sp)
-        sw a7,  4 * 17(sp)
-        sw s0,  4 * 18(sp)
-        sw s1,  4 * 19(sp)
-        sw s2,  4 * 20(sp)
-        sw s3,  4 * 21(sp)
-        sw s4,  4 * 22(sp)
-        sw s5,  4 * 23(sp)
-        sw s6,  4 * 24(sp)
-        sw s7,  4 * 25(sp)
-        sw s8,  4 * 26(sp)
-        sw s9,  4 * 27(sp)
-        sw s10, 4 * 28(sp)
-        sw s11, 4 * 29(sp)
+        sd ra,  4 * 0(sp)
+        sd gp,  4 * 1(sp)
+        sd tp,  4 * 2(sp)
+        sd t0,  4 * 3(sp)
+        sd t1,  4 * 4(sp)
+        sd t2,  4 * 5(sp)
+        sd t3,  4 * 6(sp)
+        sd t4,  4 * 7(sp)
+        sd t5,  4 * 8(sp)
+        sd t6,  4 * 9(sp)
+        sd a0,  4 * 10(sp)
+        sd a1,  4 * 11(sp)
+        sd a2,  4 * 12(sp)
+        sd a3,  4 * 13(sp)
+        sd a4,  4 * 14(sp)
+        sd a5,  4 * 15(sp)
+        sd a6,  4 * 16(sp)
+        sd a7,  4 * 17(sp)
+        sd s0,  4 * 18(sp)
+        sd s1,  4 * 19(sp)
+        sd s2,  4 * 20(sp)
+        sd s3,  4 * 21(sp)
+        sd s4,  4 * 22(sp)
+        sd s5,  4 * 23(sp)
+        sd s6,  4 * 24(sp)
+        sd s7,  4 * 25(sp)
+        sd s8,  4 * 26(sp)
+        sd s9,  4 * 27(sp)
+        sd s10, 4 * 28(sp)
+        sd s11, 4 * 29(sp)
         csrr a0, sscratch
-        sw a0, 4 * 30(sp)
+        sd a0, 4 * 30(sp)
         mv a0, sp
         call handle_trap
-        lw ra,  4 * 0(sp)
-        lw gp,  4 * 1(sp)
-        lw tp,  4 * 2(sp)
-        lw t0,  4 * 3(sp)
-        lw t1,  4 * 4(sp)
-        lw t2,  4 * 5(sp)
-        lw t3,  4 * 6(sp)
-        lw t4,  4 * 7(sp)
-        lw t5,  4 * 8(sp)
-        lw t6,  4 * 9(sp)
-        lw a0,  4 * 10(sp)
-        lw a1,  4 * 11(sp)
-        lw a2,  4 * 12(sp)
-        lw a3,  4 * 13(sp)
-        lw a4,  4 * 14(sp)
-        lw a5,  4 * 15(sp)
-        lw a6,  4 * 16(sp)
-        lw a7,  4 * 17(sp)
-        lw s0,  4 * 18(sp)
-        lw s1,  4 * 19(sp)
-        lw s2,  4 * 20(sp)
-        lw s3,  4 * 21(sp)
-        lw s4,  4 * 22(sp)
-        lw s5,  4 * 23(sp)
-        lw s6,  4 * 24(sp)
-        lw s7,  4 * 25(sp)
-        lw s8,  4 * 26(sp)
-        lw s9,  4 * 27(sp)
-        lw s10, 4 * 28(sp)
-        lw s11, 4 * 29(sp)
-        lw sp,  4 * 30(sp)
+        ld ra,  4 * 0(sp)
+        ld gp,  4 * 1(sp)
+        ld tp,  4 * 2(sp)
+        ld t0,  4 * 3(sp)
+        ld t1,  4 * 4(sp)
+        ld t2,  4 * 5(sp)
+        ld t3,  4 * 6(sp)
+        ld t4,  4 * 7(sp)
+        ld t5,  4 * 8(sp)
+        ld t6,  4 * 9(sp)
+        ld a0,  4 * 10(sp)
+        ld a1,  4 * 11(sp)
+        ld a2,  4 * 12(sp)
+        ld a3,  4 * 13(sp)
+        ld a4,  4 * 14(sp)
+        ld a5,  4 * 15(sp)
+        ld a6,  4 * 16(sp)
+        ld a7,  4 * 17(sp)
+        ld s0,  4 * 18(sp)
+        ld s1,  4 * 19(sp)
+        ld s2,  4 * 20(sp)
+        ld s3,  4 * 21(sp)
+        ld s4,  4 * 22(sp)
+        ld s5,  4 * 23(sp)
+        ld s6,  4 * 24(sp)
+        ld s7,  4 * 25(sp)
+        ld s8,  4 * 26(sp)
+        ld s9,  4 * 27(sp)
+        ld s10, 4 * 28(sp)
+        ld s11, 4 * 29(sp)
+        ld sp,  4 * 30(sp)
         sret
         ",
         options(noreturn)

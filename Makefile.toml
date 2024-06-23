@@ -1,0 +1,26 @@
+[tasks.RUN]
+description = "build and run"
+script = ['''
+#!/bin/bash
+set -xue
+
+QEMU=qemu-system-riscv64
+
+cargo build --release
+
+$QEMU -machine virt -bios default -nographic -serial mon:stdio --no-reboot \
+  -d guest_errors \
+  -kernel ./target/riscv64gc-unknown-none-elf/release/amia
+''']
+
+[tasks.OBJDUMP]
+description = "objdump using llvm-objdump"
+script = ['''
+llvm-objdump -d ./target/riscv64gc-unknown-none-elf/release/amia
+''']
+
+[tasks.CLEAN]
+description = "clean"
+script = ['''
+cargo clean
+''']

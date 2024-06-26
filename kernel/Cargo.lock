@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "amia"
+name = "kernel"
 version = "0.1.0"

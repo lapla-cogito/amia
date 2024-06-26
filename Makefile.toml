@@ -1,26 +1,34 @@
-[tasks.RUN]
-description = "build and run"
+[tasks.run]
 script = ['''
 #!/bin/bash
 set -xue
 
 QEMU=qemu-system-riscv64
+KERNEL=kernel/target/riscv64gc-unknown-none-elf/release/kernel
+USER=user/target/riscv64gc-unknown-none-elf/release/user
 
-cargo build --release
+(cd user && cargo build --release)
+llvm-objcopy --set-section-flags .bss=alloc,contents -O binary $USER kernel/shell.bin
+llvm-objcopy -Ibinary -Oelf64-littleriscv kernel/shell.bin kernel/shell.bin.o
+
+(cd kernel && cargo build --release)
 
 $QEMU -machine virt -bios default -nographic -serial mon:stdio --no-reboot \
   -d guest_errors \
-  -kernel ./target/riscv64gc-unknown-none-elf/release/amia
+  -kernel $KERNEL
 ''']
 
-[tasks.OBJDUMP]
-description = "objdump using llvm-objdump"
+[tasks.objdump]
 script = ['''
-llvm-objdump -d ./target/riscv64gc-unknown-none-elf/release/amia
+llvm-objdump -d kernel/target/riscv64gc-unknown-none-elf/release/kernel
 ''']
 
-[tasks.CLEAN]
-description = "clean"
+[tasks.clean]
 script = ['''
-cargo clean
+(cd kernel && cargo clean)
+(cd user && cargo clean)
+rm -f kernel/shell.bin kernel/shell.bin.o
 ''']
+
+[config]
+skip_core_tasks = true

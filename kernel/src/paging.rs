@@ -27,7 +27,7 @@ pub unsafe fn map_page(
         panic!("unaligned vaddr {:x}", vaddr);
     }
 
-    if vaddr % crate::constants::PAGE_SIZE != 0 {
+    if paddr % crate::constants::PAGE_SIZE != 0 {
         panic!("unaligned paddr {:x}", paddr);
     }
 

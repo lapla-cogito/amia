@@ -8,8 +8,8 @@ KERNEL=kernel/target/riscv64gc-unknown-none-elf/release/kernel
 USER=user/target/riscv64gc-unknown-none-elf/release/user
 
 (cd user && cargo build --release)
-llvm-objcopy --set-section-flags .bss=alloc,contents -O binary $USER kernel/shell.bin
-llvm-objcopy -Ibinary -Oelf64-littleriscv kernel/shell.bin kernel/shell.bin.o
+
+cp $USER kernel/shell.bin
 
 (cd kernel && cargo build --release)
 

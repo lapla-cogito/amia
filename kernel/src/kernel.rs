@@ -83,6 +83,8 @@ fn kernel_main() {
 #[no_mangle]
 #[link_section = ".text.boot"]
 pub unsafe extern "C" fn boot() -> ! {
+    let bin_shell = include_bytes!("../shell.bin");
+
     core::arch::asm!(
         "mv sp, {stack_top}
         j {kernel_main}",

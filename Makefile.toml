@@ -30,5 +30,11 @@ script = ['''
 rm -f kernel/shell.bin kernel/shell.bin.o
 ''']
 
+[tasks.fmt]
+script = ['''
+(cd kernel && cargo fmt)
+(cd user && cargo fmt)
+''']
+
 [config]
 skip_core_tasks = true

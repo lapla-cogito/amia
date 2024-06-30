@@ -1,5 +1,3 @@
-use crate::{println, util::*};
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Process {
     pub pid: i64,
@@ -144,7 +142,7 @@ pub unsafe fn yield_proc() {
     core::arch::asm!(
         "sfence.vma",
         "csrw satp, {satp}",
-        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE) | crate::constants::SATP_SV32),
+        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE) | crate::constants::SATP_SV39),
     );
 
     crate::write_csr!(

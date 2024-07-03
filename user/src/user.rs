@@ -1,8 +1,11 @@
 #![no_std]
 #![no_main]
 #![feature(naked_functions)]
+#![feature(fn_align)]
 
+mod constants;
 mod shell;
+mod util;
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -14,18 +17,25 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     }
 }
 
+#[no_mangle]
+fn exit() {
+    loop {}
+}
+
 extern "C" {
-    static __stack_top: u64;
+    static __stack_top: u32;
 }
 
 #[link_section = ".text.start"]
 #[naked]
+#[repr(align(8))]
 #[no_mangle]
 unsafe extern "C" fn start() {
     core::arch::asm!(
         "
-        la sp, {stack_top}
+        ld sp, {stack_top}
         call main
+        call exit
         ",
         stack_top = sym __stack_top,
         options(noreturn)

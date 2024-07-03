@@ -1,4 +1,6 @@
 #[no_mangle]
 fn main() {
-    loop {}
+    loop {
+        // crate::util::print("> ");
+    }
 }

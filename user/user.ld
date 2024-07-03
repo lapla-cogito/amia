@@ -19,7 +19,7 @@ SECTIONS {
     .bss : ALIGN(8) {
         *(.bss .bss.* .sbss .sbss.*);
 
-        . = ALIGN(8);
+        . = ALIGN(16);
         . += 64 * 1024; /* 64KB */
         __stack_top = .;
 

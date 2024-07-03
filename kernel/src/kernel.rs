@@ -33,47 +33,26 @@ extern "C" {
     static __kernel_base: u8;
 }
 
-fn proc_a_entry() {
-    loop {
-        let _res = putchar('A');
-        unsafe {
-            crate::process::yield_proc();
-            for _ in 0..10000000 {
-                core::arch::asm!("nop");
-            }
-        }
-    }
-}
-
-fn proc_b_entry() {
-    loop {
-        let _res = putchar('B');
-        unsafe {
-            crate::process::yield_proc();
-            for _ in 0..10000000 {
-                core::arch::asm!("nop");
-            }
-        }
-    }
-}
-
 #[no_mangle]
 fn kernel_main() {
+    let bin_shell = include_bytes!("../shell.bin");
+
     unsafe {
         memset(
             &__bss as *const u8 as *mut u8,
             0,
             (__bss_end - __bss) as usize,
         );
+
         crate::paging::NEXT_PADDR = core::ptr::addr_of!(__free_ram) as u64;
         write_csr!("stvec", kernel_entry as usize);
 
-        crate::process::IDLE_PROC = crate::process::create_process(0);
+        crate::process::IDLE_PROC =
+            crate::process::create_process(crate::constants::NULL as *const u64, 0);
         (*(crate::process::IDLE_PROC)).pid = -1;
         crate::process::CURRENT_PROC = crate::process::IDLE_PROC;
 
-        crate::process::create_process(proc_a_entry as usize as u64);
-        crate::process::create_process(proc_b_entry as usize as u64);
+        crate::process::create_process(bin_shell.as_ptr() as *const u64, bin_shell.len());
         crate::process::yield_proc();
     }
 
@@ -83,8 +62,6 @@ fn kernel_main() {
 #[no_mangle]
 #[link_section = ".text.boot"]
 pub unsafe extern "C" fn boot() -> ! {
-    let bin_shell = include_bytes!("../shell.bin");
-
     core::arch::asm!(
         "mv sp, {stack_top}
         j {kernel_main}",

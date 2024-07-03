@@ -22,3 +22,6 @@ pub const PAGE_R: u64 = 1 << 1;
 pub const PAGE_W: u64 = 1 << 2;
 pub const PAGE_X: u64 = 1 << 3;
 pub const PAGE_U: u64 = 1 << 4;
+
+pub const USER_BASE: u64 = 0x1000000;
+pub const SSTATUS_SPIE: u64 = 1 << 5;

@@ -9,7 +9,8 @@ USER=user/target/riscv64gc-unknown-none-elf/release/user
 
 (cd user && cargo build --release)
 
-cp $USER kernel/shell.bin
+cp $USER kernel/shell
+llvm-objcopy -O binary kernel/shell  kernel/shell.bin
 
 (cd kernel && cargo build --release)
 

@@ -1,5 +1,5 @@
 #[no_mangle]
-fn main() {
+pub fn main() {
     loop {
         // crate::util::print("> ");
     }

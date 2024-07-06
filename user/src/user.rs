@@ -27,17 +27,15 @@ extern "C" {
 }
 
 #[link_section = ".text.start"]
-#[naked]
-#[repr(align(8))]
 #[no_mangle]
-unsafe extern "C" fn start() {
+pub unsafe extern "C" fn start() {
     core::arch::asm!(
-        "
-        ld sp, {stack_top}
-        call main
-        call exit
-        ",
-        stack_top = sym __stack_top,
+        "mv sp, {stack_top}",
+        "j {main}",
+        "j {exit}",
+        stack_top = in(reg) &__stack_top,
+        main = sym crate::shell::main,
+        exit = sym exit,
         options(noreturn)
     );
 }

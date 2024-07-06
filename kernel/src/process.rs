@@ -175,19 +175,18 @@ pub unsafe fn yield_proc() {
         (&mut (*next).stack as *mut [u8] as *mut u8).add(core::mem::size_of_val(&(*next).stack))
             as *mut u64
     );
+
     switch_context(&(*prev).sp, &(*next).sp)
 }
 
 #[no_mangle]
 unsafe extern "C" fn shell_entry() {
     core::arch::asm!(
-        "la a0, {sepc}",
-        "csrw sepc, a0",
-        "la a0, {sstatus}",
-        "csrw sstatus, a0",
+        "csrw sepc, {sepc}",
+        "csrw sstatus,{sstatus}",
         "sret",
-        sepc = const crate::constants::USER_BASE,
-        sstatus = const crate::constants::SSTATUS_SPIE,
+        sepc = in(reg) crate::constants::USER_BASE,
+        sstatus = in(reg) crate::constants::SSTATUS_SPIE | crate::constants::SSTATUS_SUM,
         options(noreturn)
     );
 }

@@ -51,7 +51,6 @@ fn kernel_main() {
             crate::process::create_process(crate::constants::NULL as *const u64, 0);
         (*(crate::process::IDLE_PROC)).pid = -1;
         crate::process::CURRENT_PROC = crate::process::IDLE_PROC;
-
         crate::process::create_process(bin_shell.as_ptr() as *const u64, bin_shell.len());
         crate::process::yield_proc();
     }

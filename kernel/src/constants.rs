@@ -25,3 +25,4 @@ pub const PAGE_U: u64 = 1 << 4;
 
 pub const USER_BASE: u64 = 0x1000000;
 pub const SSTATUS_SPIE: u64 = 1 << 5;
+pub const SSTATUS_SUM: u64 = 1 << 18;

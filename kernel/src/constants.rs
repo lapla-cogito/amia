@@ -16,9 +16,13 @@ pub const PROC_READY: i64 = 1;
 
 pub const PAGE_SIZE: u64 = 4096;
 
-pub const SATP_SV32: u64 = 1 << 31;
+pub const SATP_SV39: u64 = 8 << 60;
 pub const PAGE_V: u64 = 1 << 0;
 pub const PAGE_R: u64 = 1 << 1;
 pub const PAGE_W: u64 = 1 << 2;
 pub const PAGE_X: u64 = 1 << 3;
-pub const PAGE_S: u64 = 1 << 4;
+pub const PAGE_U: u64 = 1 << 4;
+
+pub const USER_BASE: u64 = 0x1000000;
+pub const SSTATUS_SPIE: u64 = 1 << 5;
+pub const SSTATUS_SUM: u64 = 1 << 18;

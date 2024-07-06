@@ -1,4 +1,4 @@
-use crate::{println, util::*};
+use crate::println;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Process {
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn switch_context(prev_sp: &*mut u64, next_sp: &*mut u64) 
     );
 }
 
-pub unsafe fn create_process(pc: u64) -> *mut Process {
+pub unsafe fn create_process(img: *const u64, img_size: usize) -> *mut Process {
     let mut proc = core::ptr::null_mut();
     let mut i = 0;
 
@@ -82,27 +82,24 @@ pub unsafe fn create_process(pc: u64) -> *mut Process {
     if !proc.is_null() {
         let sp = (&mut (*proc).stack as *mut [u8] as *mut u8)
             .add(core::mem::size_of_val(&(*proc).stack)) as *mut u64;
-        sp.offset(-8).write(0); // s11
-        sp.offset(-16).write(0); // s10
-        sp.offset(-24).write(0); // s9
-        sp.offset(-32).write(0); // s8
-        sp.offset(-40).write(0); // s7
-        sp.offset(-48).write(0); // s6
-        sp.offset(-56).write(0); // s5
-        sp.offset(-64).write(0); // s4
-        sp.offset(-72).write(0); // s3
-        sp.offset(-80).write(0); // s2
-        sp.offset(-88).write(0); // s1
-        sp.offset(-96).write(0); // s0
-        sp.offset(-104).write(pc); // ra
+        *sp.sub(1) = 0; // s11
+        *sp.sub(2) = 0; // s10
+        *sp.sub(3) = 0; // s9
+        *sp.sub(4) = 0; // s8
+        *sp.sub(5) = 0; // s7
+        *sp.sub(6) = 0; // s6
+        *sp.sub(7) = 0; // s5
+        *sp.sub(8) = 0; // s4
+        *sp.sub(9) = 0; // s3
+        *sp.sub(10) = 0; // s2
+        *sp.sub(11) = 0; // s1
+        *sp.sub(12) = 0; // s0
+        *sp.sub(13) = shell_entry as usize as u64; // ra
 
         let page_table = crate::paging::alloc_pages(1);
-        let mut paddr =
-            core::ptr::addr_of!(crate::__kernel_base) as *const u8 as crate::types::PaddrT;
+        let mut paddr = core::ptr::addr_of!(crate::__kernel_base) as crate::types::PaddrT;
 
-        while paddr
-            < core::ptr::addr_of!(crate::__free_ram_end) as *const u8 as crate::types::PaddrT
-        {
+        while paddr < core::ptr::addr_of!(crate::__free_ram_end) as crate::types::PaddrT {
             crate::paging::map_page(
                 page_table,
                 paddr,
@@ -112,10 +109,33 @@ pub unsafe fn create_process(pc: u64) -> *mut Process {
             paddr += crate::constants::PAGE_SIZE;
         }
 
+        let mut offset = 0;
+        let img_addr = img;
+        while offset < img_size {
+            let page = crate::paging::alloc_pages(1);
+            core::ptr::copy(
+                img_addr.add(offset),
+                page as *mut u64,
+                crate::constants::PAGE_SIZE as usize,
+            );
+
+            crate::paging::map_page(
+                page_table,
+                crate::constants::USER_BASE + offset as u64,
+                page,
+                crate::constants::PAGE_U
+                    | crate::constants::PAGE_R
+                    | crate::constants::PAGE_W
+                    | crate::constants::PAGE_X,
+            );
+            offset += crate::constants::PAGE_SIZE as usize;
+        }
+
         (*proc).pid = i as i64 + 1;
         (*proc).state = crate::constants::PROC_READY;
-        (*proc).sp = sp.offset(-104);
+        (*proc).sp = sp.sub(13);
         (*proc).page_table = page_table;
+
         proc
     } else {
         panic!("no free process slot");
@@ -142,9 +162,12 @@ pub unsafe fn yield_proc() {
     CURRENT_PROC = next;
 
     core::arch::asm!(
-        "sfence.vma",
-        "csrw satp, {satp}",
-        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE) | crate::constants::SATP_SV32),
+        "
+        sfence.vma
+        csrw satp, {satp}
+        sfence.vma
+        ",
+        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE) | crate::constants::SATP_SV39),
     );
 
     crate::write_csr!(
@@ -152,5 +175,18 @@ pub unsafe fn yield_proc() {
         (&mut (*next).stack as *mut [u8] as *mut u8).add(core::mem::size_of_val(&(*next).stack))
             as *mut u64
     );
+
     switch_context(&(*prev).sp, &(*next).sp)
+}
+
+#[no_mangle]
+unsafe extern "C" fn shell_entry() {
+    core::arch::asm!(
+        "csrw sepc, {sepc}",
+        "csrw sstatus,{sstatus}",
+        "sret",
+        sepc = in(reg) crate::constants::USER_BASE,
+        sstatus = in(reg) crate::constants::SSTATUS_SPIE | crate::constants::SSTATUS_SUM,
+        options(noreturn)
+    );
 }

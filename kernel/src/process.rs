@@ -1,5 +1,3 @@
-use crate::println;
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Process {
     pub pid: i64,
@@ -67,13 +65,13 @@ pub unsafe extern "C" fn switch_context(prev_sp: &*mut u64, next_sp: &*mut u64) 
     );
 }
 
-pub unsafe fn create_process(img: *const u64, img_size: usize) -> *mut Process {
+pub unsafe fn create_process(img: *const crate::elf::ElfHeader) -> *mut Process {
     let mut proc = core::ptr::null_mut();
     let mut i = 0;
 
-    for tmp in 0..crate::constants::PROCS_MAX {
-        if PROCS[tmp].state == crate::constants::PROC_UNUSED {
-            i = tmp;
+    for (ind, proc_iter) in PROCS.iter().enumerate().take(crate::constants::PROCS_MAX) {
+        if proc_iter.state == crate::constants::PROC_UNUSED {
+            i = ind;
             proc = &mut PROCS[i] as *mut Process;
             break;
         }
@@ -109,26 +107,23 @@ pub unsafe fn create_process(img: *const u64, img_size: usize) -> *mut Process {
             paddr += crate::constants::PAGE_SIZE;
         }
 
-        let mut offset = 0;
-        let img_addr = img;
-        while offset < img_size {
-            let page = crate::paging::alloc_pages(1);
-            core::ptr::copy(
-                img_addr.add(offset),
-                page as *mut u64,
-                crate::constants::PAGE_SIZE as usize,
-            );
+        if img != core::ptr::null() {
+            let asref = img.as_ref().unwrap();
+            let count = asref.count_page();
+            let page = crate::paging::alloc_pages(count as u64);
+            asref.load(page);
 
-            crate::paging::map_page(
-                page_table,
-                crate::constants::USER_BASE + offset as u64,
-                page,
-                crate::constants::PAGE_U
-                    | crate::constants::PAGE_R
-                    | crate::constants::PAGE_W
-                    | crate::constants::PAGE_X,
-            );
-            offset += crate::constants::PAGE_SIZE as usize;
+            for i in 0..count {
+                crate::paging::map_page(
+                    page_table,
+                    crate::constants::USER_BASE + (i as u64 * crate::constants::PAGE_SIZE),
+                    page + (i as u64 * crate::constants::PAGE_SIZE),
+                    crate::constants::PAGE_U
+                        | crate::constants::PAGE_R
+                        | crate::constants::PAGE_X
+                        | crate::constants::PAGE_W,
+                );
+            }
         }
 
         (*proc).pid = i as i64 + 1;

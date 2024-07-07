@@ -174,3 +174,11 @@ macro_rules! write_csr {
         ::core::arch::asm!(concat!("csrw ", $csr, ", {}"), in(reg) $val);
     }};
 }
+
+pub const fn align_up(value: u64, align: u64) -> u64 {
+    if value % align == 0 {
+        value
+    } else {
+        value + align - (value % align)
+    }
+}

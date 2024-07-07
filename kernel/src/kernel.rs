@@ -6,6 +6,7 @@
 #![feature(asm_const)]
 
 mod constants;
+mod elf;
 mod paging;
 mod process;
 mod sbi;
@@ -35,7 +36,7 @@ extern "C" {
 
 #[no_mangle]
 fn kernel_main() {
-    let bin_shell = include_bytes!("../shell.bin");
+    let bin_shell = crate::elf::ElfHeader::new(include_bytes!("../shell"));
 
     unsafe {
         memset(
@@ -48,10 +49,10 @@ fn kernel_main() {
         write_csr!("stvec", kernel_entry as usize);
 
         crate::process::IDLE_PROC =
-            crate::process::create_process(crate::constants::NULL as *const u64, 0);
+            crate::process::create_process(crate::constants::NULL as *const crate::elf::ElfHeader);
         (*(crate::process::IDLE_PROC)).pid = -1;
         crate::process::CURRENT_PROC = crate::process::IDLE_PROC;
-        crate::process::create_process(bin_shell.as_ptr() as *const u64, bin_shell.len());
+        crate::process::create_process(bin_shell);
         crate::process::yield_proc();
     }
 

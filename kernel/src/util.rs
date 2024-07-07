@@ -124,37 +124,37 @@ impl core::fmt::Write for Writer {
 #[repr(C)]
 #[repr(packed)]
 pub struct TrapFrame {
-    ra: u64,
-    gp: u64,
-    tp: u64,
-    t0: u64,
-    t1: u64,
-    t2: u64,
-    t3: u64,
-    t4: u64,
-    t5: u64,
-    t6: u64,
-    a0: u64,
-    a1: u64,
-    a2: u64,
-    a3: u64,
-    a4: u64,
-    a5: u64,
-    a6: u64,
-    a7: u64,
-    s0: u64,
-    s1: u64,
-    s2: u64,
-    s3: u64,
-    s4: u64,
-    s5: u64,
-    s6: u64,
-    s7: u64,
-    s8: u64,
-    s9: u64,
-    s10: u64,
-    s11: u64,
-    sp: u64,
+    pub ra: u64,
+    pub gp: u64,
+    pub tp: u64,
+    pub t0: u64,
+    pub t1: u64,
+    pub t2: u64,
+    pub t3: u64,
+    pub t4: u64,
+    pub t5: u64,
+    pub t6: u64,
+    pub a0: u64,
+    pub a1: u64,
+    pub a2: u64,
+    pub a3: u64,
+    pub a4: u64,
+    pub a5: u64,
+    pub a6: u64,
+    pub a7: u64,
+    pub s0: u64,
+    pub s1: u64,
+    pub s2: u64,
+    pub s3: u64,
+    pub s4: u64,
+    pub s5: u64,
+    pub s6: u64,
+    pub s7: u64,
+    pub s8: u64,
+    pub s9: u64,
+    pub s10: u64,
+    pub s11: u64,
+    pub sp: u64,
 }
 
 #[macro_export]
@@ -171,7 +171,9 @@ macro_rules! read_csr {
 #[macro_export]
 macro_rules! write_csr {
     ($csr:literal, $val:expr) => {{
-        ::core::arch::asm!(concat!("csrw ", $csr, ", {}"), in(reg) $val);
+        unsafe{
+            ::core::arch::asm!(concat!("csrw ", $csr, ", {}"), in(reg) $val);
+        }
     }};
 }
 

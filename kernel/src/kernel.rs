@@ -73,17 +73,33 @@ pub unsafe extern "C" fn boot() -> ! {
 
 #[allow(dead_code)]
 #[no_mangle]
-extern "C" fn handle_trap(_frame: TrapFrame) {
-    let mut scause: u32;
-    let mut stval: u32;
-    let mut sepc: u32;
+extern "C" fn handle_trap(frame: *mut TrapFrame) {
+    let mut scause: u64;
+    let mut stval: u64;
+    let mut sepc: u64;
 
     unsafe {
         core::arch::asm!("csrr {}, scause", out(reg) scause);
         core::arch::asm!("csrr {}, stval", out(reg) stval);
         core::arch::asm!("csrr {}, sepc", out(reg) sepc);
     }
-    panic!("scause: {:x}, stval: {:x}, sepc: {:x}", scause, stval, sepc);
+    if scause == crate::constants::SCAUSE_ECALL {
+        handle_syscall(frame);
+        sepc += 4;
+    } else {
+        panic!("scause: {:x}, stval: {:x}, sepc: {:x}", scause, stval, sepc);
+    }
+
+    write_csr!("sepc", sepc);
+}
+
+fn handle_syscall(f: *mut TrapFrame) {
+    let f = unsafe { f.as_mut().unwrap() };
+
+    match f.a3 {
+        crate::constants::SYS_PUTCHAR => crate::sbi::putchar(f.a0 as u8),
+        _ => panic!("unknown syscall: a3={:x}", f.a3 as u32),
+    }
 }
 
 #[no_mangle]

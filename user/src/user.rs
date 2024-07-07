@@ -19,7 +19,11 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[no_mangle]
 fn exit() {
-    loop {}
+    loop {
+        unsafe {
+            core::arch::asm!("wfi");
+        }
+    }
 }
 
 extern "C" {

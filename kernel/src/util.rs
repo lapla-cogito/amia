@@ -171,8 +171,9 @@ macro_rules! read_csr {
 #[macro_export]
 macro_rules! write_csr {
     ($csr:literal, $val:expr) => {{
-        unsafe{
-            ::core::arch::asm!(concat!("csrw ", $csr, ", {}"), in(reg) $val);
+        let val = $val;
+        unsafe {
+            ::core::arch::asm!(concat!("csrw ", $csr, ", {}"), in(reg) val);
         }
     }};
 }

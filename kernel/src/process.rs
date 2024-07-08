@@ -107,7 +107,7 @@ pub unsafe fn create_process(img: *const crate::elf::ElfHeader) -> *mut Process 
             paddr += crate::constants::PAGE_SIZE;
         }
 
-        if img != core::ptr::null() {
+        if !img.is_null() {
             let asref = img.as_ref().unwrap();
             let count = asref.count_page();
             let page = crate::paging::alloc_pages(count as u64);

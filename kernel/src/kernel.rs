@@ -98,6 +98,22 @@ fn handle_syscall(f: *mut TrapFrame) {
 
     match f.a3 {
         crate::constants::SYS_PUTCHAR => crate::sbi::putchar(f.a0 as u8),
+        crate::constants::SYS_GETCHAR => loop {
+            let c = crate::sbi::getchar();
+            if c != -1 {
+                f.a0 = c as u64;
+                break;
+            }
+        },
+        crate::constants::SYS_EXIT => {
+            let current_proc = unsafe { crate::process::CURRENT_PROC.as_mut().unwrap() };
+            println!("process {} exited", current_proc.pid);
+            current_proc.state = crate::constants::PROC_EXITED;
+            unsafe {
+                crate::process::yield_proc();
+            }
+            unreachable!();
+        }
         _ => panic!("unknown syscall: a3={:x}", f.a3 as u32),
     }
 }

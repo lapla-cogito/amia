@@ -74,7 +74,7 @@ impl ElfHeader {
             }
         }
 
-        (crate::util::align_up(end_vaddr - start_vaddr, crate::constants::PAGE_SIZE)
-            / crate::constants::PAGE_SIZE) as usize
+        (crate::util::align_up(end_vaddr - start_vaddr, crate::constants::PAGE_SIZE as u64)
+            / crate::constants::PAGE_SIZE as u64) as usize
     }
 }

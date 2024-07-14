@@ -12,6 +12,8 @@ mod process;
 mod sbi;
 mod types;
 mod util;
+mod virtio;
+mod virtio_net;
 
 use crate::util::*;
 

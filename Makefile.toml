@@ -1,11 +1,12 @@
+[env]
+QEMU = "qemu-system-riscv64"
+KERNEL = "kernel/target/riscv64gc-unknown-none-elf/release/kernel"
+USER = "user/target/riscv64gc-unknown-none-elf/release/user"
+
 [tasks.run]
 script = ['''
 #!/bin/bash
 set -xue
-
-QEMU=qemu-system-riscv64
-KERNEL=kernel/target/riscv64gc-unknown-none-elf/release/kernel
-USER=user/target/riscv64gc-unknown-none-elf/release/user
 
 (cd user && cargo build --release)
 
@@ -20,7 +21,7 @@ $QEMU -machine virt -bios default -nographic -serial mon:stdio --no-reboot \
 
 [tasks.objdump]
 script = ['''
-llvm-objdump -d kernel/target/riscv64gc-unknown-none-elf/release/kernel
+llvm-objdump -d $KERNEL
 ''']
 
 [tasks.clean]

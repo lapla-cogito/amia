@@ -48,6 +48,7 @@ pub const VIRTQ_DESC_F_INTERRUPT: u64 = 4;
 
 pub const VIRTIO_ENTRY: usize = 16;
 pub const VIRTIO_NET_MAX_PACKET_SIZE: usize = 1500;
+pub const VIRTIO_NET_BASE: usize = 0x10002000;
 
 const SIZE_OF_U16: usize = core::mem::size_of::<u16>();
 const SIZE_OF_U32: usize = core::mem::size_of::<u32>();
@@ -55,3 +56,6 @@ const SIZE_OF_U64: usize = core::mem::size_of::<u64>();
 
 pub const SIZE: usize = (SIZE_OF_U64 + SIZE_OF_U16 + SIZE_OF_U32 + SIZE_OF_U16) * VIRTIO_ENTRY
     + (SIZE_OF_U16 + SIZE_OF_U16 + SIZE_OF_U16 * VIRTIO_ENTRY);
+
+pub const VIRTIO_ERR_TOO_LARGE: u32 = 1;
+pub const VIRTIO_ERR_TRY_AGAIN: u32 = 2;

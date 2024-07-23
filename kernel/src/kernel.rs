@@ -39,6 +39,12 @@ extern "C" {
 #[no_mangle]
 fn kernel_main() {
     let bin_shell = crate::elf::ElfHeader::new(include_bytes!("../shell"));
+    let mut macaddr = [0u8; 6];
+    crate::virtio_net::read_macaddr(&mut macaddr);
+    println!(
+        "macaddr: {:x}:{:x}:{:x}:{:x}:{:x}:{:x}",
+        macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]
+    );
 
     unsafe {
         memset(

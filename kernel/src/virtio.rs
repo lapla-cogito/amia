@@ -45,3 +45,36 @@ struct Virtq {
     used_idx: *mut u16,
     last_used_idx: u16,
 }
+
+impl Virtq {
+    pub fn new(idx: u32) -> *mut Self {
+        let vitrq_addr = unsafe {
+            crate::paging::alloc_pages(
+                crate::util::align_up(
+                    core::mem::size_of::<Virtq>() as u64,
+                    crate::constants::PAGE_SIZE as u64,
+                ) / crate::constants::PAGE_SIZE as u64,
+            )
+        };
+
+        let virtq = unsafe { (vitrq_addr as u64 as *mut Virtq).as_mut().unwrap() };
+        virtq.idx = idx;
+        virtq.used_idx = unsafe {
+            (&mut (virtq.used) as *const VirtqUsed as *const u8)
+                .offset(core::mem::offset_of!(VirtqUsed, idx) as isize)
+        } as *mut u16;
+
+        virtq
+    }
+
+    pub fn reset(&mut self) {
+        self.avail.idx = 0;
+        self.used.idx = 0;
+        self.used.ring = [VirtqUsedElem { id: 0, len: 0 }; crate::constants::VIRTIO_ENTRY];
+        self.last_used_idx = 0;
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.last_used_idx != self.used_idx as u16
+    }
+}

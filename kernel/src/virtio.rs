@@ -78,3 +78,42 @@ impl Virtq {
         self.last_used_idx != self.used_idx as u16
     }
 }
+
+pub struct Dmabuf {
+    paddr: crate::types::PaddrT,
+    vaddr: crate::types::VaddrT,
+    entry_size: usize,
+    num_entries: usize,
+    used: [bool; crate::constants::VIRTIO_ENTRY],
+}
+
+impl Dmabuf {
+    pub fn alloc_dmabuf(&mut self, paddr: &mut crate::types::PaddrT) -> Result<(), u32> {
+        for i in 0..self.num_entries {
+            if self.used[i] == false {
+                self.used[i] = true;
+                let offset = i * self.entry_size;
+                let tmp = self.paddr + offset as u64;
+                *paddr = tmp;
+                return Ok(());
+            }
+        }
+        Err(crate::constants::VIRTIO_ERR_NO_BUF)
+    }
+
+    pub fn free_dmabuf(&mut self, paddr: crate::types::PaddrT) {
+        let offset = (paddr - self.paddr) as usize;
+        let i = offset / self.entry_size;
+        self.used[i] = false;
+    }
+
+    pub fn p2v(&self, paddr: crate::types::PaddrT) -> Result<crate::types::VaddrT, u32> {
+        if paddr < self.paddr
+            || paddr >= self.paddr + self.entry_size as u64 * self.num_entries as u64
+        {
+            return Err(crate::constants::VIRTIO_ERR_OUT_OF_INDEX);
+        }
+
+        Ok(self.vaddr + (paddr - self.paddr) as u64)
+    }
+}

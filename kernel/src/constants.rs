@@ -59,3 +59,5 @@ pub const SIZE: usize = (SIZE_OF_U64 + SIZE_OF_U16 + SIZE_OF_U32 + SIZE_OF_U16) 
 
 pub const VIRTIO_ERR_TOO_LARGE: u32 = 1;
 pub const VIRTIO_ERR_TRY_AGAIN: u32 = 2;
+pub const VIRTIO_ERR_NO_BUF: u32 = 3;
+pub const VIRTIO_ERR_OUT_OF_INDEX: u32 = 4;

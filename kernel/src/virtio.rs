@@ -34,7 +34,16 @@ struct VirtqUsed {
 
 #[repr(C, packed)]
 #[derive(Clone, Copy)]
-struct Virtq {
+pub struct VirtioChainEntry {
+    pub idx: u16,
+    pub addr: crate::types::PaddrT,
+    pub len: u32,
+    pub writeable: bool,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy)]
+pub struct Virtq {
     desc: [VirtqDesc; crate::constants::VIRTIO_ENTRY],
     avail: VirtqAvail,
     used: VirtqUsed,
@@ -77,20 +86,41 @@ impl Virtq {
     pub fn is_full(&self) -> bool {
         self.last_used_idx != self.used_idx as u16
     }
+
+    pub fn send(&mut self, chain: &[VirtioChainEntry]) {
+        let mut desc_idx = 0;
+        let avail_idx = self.avail.idx as usize;
+
+        for i in 0..chain.len() {
+            let entry = &chain[i];
+            let desc = &mut self.desc[desc_idx];
+            desc.addr = entry.addr;
+            desc.len = entry.len;
+            desc.flags = if entry.writeable { 2 } else { 1 };
+            desc.next = (desc_idx + 1) as u16;
+
+            desc_idx += 1;
+        }
+
+        self.desc[desc_idx - 1].next = 0;
+
+        self.avail.ring[avail_idx] = 0;
+        self.avail.idx += 1;
+    }
 }
 
 pub struct Dmabuf {
-    paddr: crate::types::PaddrT,
-    vaddr: crate::types::VaddrT,
-    entry_size: usize,
-    num_entries: usize,
-    used: [bool; crate::constants::VIRTIO_ENTRY],
+    pub paddr: crate::types::PaddrT,
+    pub vaddr: crate::types::VaddrT,
+    pub entry_size: usize,
+    pub num_entries: usize,
+    pub used: [bool; crate::constants::VIRTIO_ENTRY],
 }
 
 impl Dmabuf {
     pub fn alloc_dmabuf(&mut self, paddr: &mut crate::types::PaddrT) -> Result<(), u32> {
         for i in 0..self.num_entries {
-            if self.used[i] == false {
+            if !self.used[i] {
                 self.used[i] = true;
                 let offset = i * self.entry_size;
                 let tmp = self.paddr + offset as u64;

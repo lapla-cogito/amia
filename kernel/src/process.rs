@@ -104,7 +104,7 @@ pub unsafe fn create_process(img: *const crate::elf::ElfHeader) -> *mut Process 
                 paddr,
                 crate::constants::PAGE_R | crate::constants::PAGE_W | crate::constants::PAGE_X,
             );
-            paddr += crate::constants::PAGE_SIZE;
+            paddr += crate::constants::PAGE_SIZE as u64;
         }
 
         if !img.is_null() {
@@ -116,12 +116,12 @@ pub unsafe fn create_process(img: *const crate::elf::ElfHeader) -> *mut Process 
             for i in 0..count {
                 crate::paging::map_page(
                     page_table,
-                    crate::constants::USER_BASE + (i as u64 * crate::constants::PAGE_SIZE),
-                    page + (i as u64 * crate::constants::PAGE_SIZE),
+                    crate::constants::USER_BASE + (i * crate::constants::PAGE_SIZE) as u64,
+                    page + (i * crate::constants::PAGE_SIZE) as u64,
                     crate::constants::PAGE_U
                         | crate::constants::PAGE_R
-                        | crate::constants::PAGE_X
-                        | crate::constants::PAGE_W,
+                        | crate::constants::PAGE_W
+                        | crate::constants::PAGE_X,
                 );
             }
         }
@@ -162,7 +162,7 @@ pub unsafe fn yield_proc() {
         csrw satp, {satp}
         sfence.vma
         ",
-        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE) | crate::constants::SATP_SV39),
+        satp = in(reg) (((*next).page_table / crate::constants::PAGE_SIZE as u64) | crate::constants::SATP_SV39),
     );
 
     crate::write_csr!(
@@ -177,9 +177,11 @@ pub unsafe fn yield_proc() {
 #[no_mangle]
 unsafe extern "C" fn shell_entry() {
     core::arch::asm!(
-        "csrw sepc, {sepc}",
-        "csrw sstatus,{sstatus}",
-        "sret",
+        "
+        csrw sepc, {sepc}
+        csrw sstatus,{sstatus}
+        sret
+        ",
         sepc = in(reg) crate::constants::USER_BASE,
         sstatus = in(reg) crate::constants::SSTATUS_SPIE | crate::constants::SSTATUS_SUM,
         options(noreturn)

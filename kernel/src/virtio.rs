@@ -144,6 +144,26 @@ impl Dmabuf {
             return Err(crate::constants::VIRTIO_ERR_OUT_OF_INDEX);
         }
 
-        Ok(self.vaddr + (paddr - self.paddr) as u64)
+        Ok(self.vaddr + (paddr - self.paddr))
     }
+}
+
+pub struct VirtioMmio {
+    pub base: crate::types::VaddrT,
+    pub num_queues: u32,
+    pub queues: [*mut Virtq],
+}
+
+impl VirtioMmio {
+    pub fn notify(&self, idx: u32) {
+        unsafe {
+            core::ptr::write_volatile((self.base + 0x50 + 4 * idx as u64) as *mut u32, 0);
+        }
+    }
+}
+
+#[test_case]
+fn test_virtq() {
+    let virtq = Virtq::new(0);
+    assert!(!virtq.is_null());
 }

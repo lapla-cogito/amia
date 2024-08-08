@@ -37,5 +37,15 @@ script = ['''
 (cd user && cargo fmt)
 ''']
 
+[tasks.test]
+script = ['''
+(cd kernel && cargo build --tests)
+TEST_TARGET=$(find kernel/target/riscv64gc-unknown-none-elf/debug/deps -type f ! \( -name "*.d" -o -name "*.rmeta" \) | head -n 1)
+
+$QEMU -machine virt -bios default -nographic -serial mon:stdio --no-reboot \
+  -d guest_errors \
+  -kernel $TEST_TARGET
+''']
+
 [config]
 skip_core_tasks = true

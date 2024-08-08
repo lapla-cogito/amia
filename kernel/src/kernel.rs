@@ -4,12 +4,16 @@
 #![feature(fn_align)]
 #![feature(naked_functions)]
 #![feature(asm_const)]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 mod constants;
 mod elf;
 mod paging;
 mod process;
 mod sbi;
+mod test;
 mod types;
 mod util;
 mod virtio;
@@ -38,6 +42,9 @@ extern "C" {
 
 #[no_mangle]
 fn kernel_main() {
+    #[cfg(test)]
+    test_main();
+
     let bin_shell = crate::elf::ElfHeader::new(include_bytes!("../shell"));
     let mut macaddr = [0u8; 6];
     crate::virtio_net::read_macaddr(&mut macaddr);

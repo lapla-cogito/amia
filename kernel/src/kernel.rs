@@ -10,6 +10,8 @@
 
 mod constants;
 mod elf;
+mod error;
+mod mutex;
 mod paging;
 mod process;
 mod sbi;
@@ -20,6 +22,8 @@ mod virtio;
 mod virtio_net;
 
 use crate::util::*;
+
+pub use crate::error::{Error, Result};
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -135,7 +139,6 @@ fn handle_syscall(f: *mut TrapFrame) {
 
 #[no_mangle]
 #[link_section = ".text.boot"]
-#[repr(align(8))]
 #[naked]
 pub unsafe extern "C" fn kernel_entry() {
     core::arch::asm!(

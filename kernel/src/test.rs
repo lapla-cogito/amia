@@ -9,7 +9,7 @@ where
     fn test(&self) {
         crate::print!("{}...\t", core::any::type_name::<T>());
         self();
-        crate::println!("[ok]\n");
+        crate::println!("[ok]");
     }
 }
 
@@ -18,4 +18,6 @@ pub fn test_runner(tests: &[&dyn Test]) {
     for test in tests {
         test.test();
     }
+
+    unsafe { crate::util::exit_qemu() };
 }

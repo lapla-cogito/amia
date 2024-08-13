@@ -185,3 +185,9 @@ pub const fn align_up(value: u64, align: u64) -> u64 {
         value + align - (value % align)
     }
 }
+
+pub unsafe fn exit_qemu() {
+    loop {
+        core::arch::asm!("wfi", options(nomem, nostack));
+    }
+}

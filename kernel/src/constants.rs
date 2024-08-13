@@ -15,7 +15,7 @@ pub const PROC_UNUSED: i64 = 0;
 pub const PROC_READY: i64 = 1;
 pub const PROC_EXITED: i64 = 2;
 
-pub const PAGE_SIZE: u64 = 4096;
+pub const PAGE_SIZE: usize = 4096;
 
 pub const SATP_SV39: u64 = 8 << 60;
 pub const PAGE_V: u64 = 1 << 0;
@@ -32,3 +32,32 @@ pub const SCAUSE_ECALL: u64 = 8;
 pub const SYS_PUTCHAR: u64 = 1;
 pub const SYS_GETCHAR: u64 = 2;
 pub const SYS_EXIT: u64 = 3;
+
+// https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html#x1-110001
+pub const VIRTIO_STATUS_ACK: u64 = 1;
+pub const VIRTIO_STATUS_DRIVER: u64 = 2;
+pub const VIRTIO_STATUS_FAILED: u64 = 128;
+pub const VIRTIO_STATUS_FEATURE_OK: u64 = 8;
+pub const VIRTIO_STATUS_DRIVER_OK: u64 = 4;
+pub const VIRTIO_STATUS_NEEDS_RESET: u64 = 64;
+
+// https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html#x1-430005
+pub const VIRTQ_DESC_F_NEXT: u64 = 1;
+pub const VIRTQ_DESC_F_WRITE: u64 = 2;
+pub const VIRTQ_DESC_F_INTERRUPT: u64 = 4;
+
+pub const VIRTIO_ENTRY: usize = 16;
+pub const VIRTIO_NET_MAX_PACKET_SIZE: usize = 1500;
+pub const VIRTIO_NET_BASE: usize = 0x10002000;
+
+const SIZE_OF_U16: usize = core::mem::size_of::<u16>();
+const SIZE_OF_U32: usize = core::mem::size_of::<u32>();
+const SIZE_OF_U64: usize = core::mem::size_of::<u64>();
+
+pub const SIZE: usize = (SIZE_OF_U64 + SIZE_OF_U16 + SIZE_OF_U32 + SIZE_OF_U16) * VIRTIO_ENTRY
+    + (SIZE_OF_U16 + SIZE_OF_U16 + SIZE_OF_U16 * VIRTIO_ENTRY);
+
+pub const VIRTIO_ERR_TOO_LARGE: u32 = 1;
+pub const VIRTIO_ERR_TRY_AGAIN: u32 = 2;
+pub const VIRTIO_ERR_NO_BUF: u32 = 3;
+pub const VIRTIO_ERR_OUT_OF_INDEX: u32 = 4;

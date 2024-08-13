@@ -4,16 +4,26 @@
 #![feature(fn_align)]
 #![feature(naked_functions)]
 #![feature(asm_const)]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 mod constants;
 mod elf;
+mod error;
+mod mutex;
 mod paging;
 mod process;
 mod sbi;
+mod test;
 mod types;
 mod util;
+mod virtio;
+mod virtio_net;
 
 use crate::util::*;
+
+pub use crate::error::{Error, Result};
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -36,7 +46,16 @@ extern "C" {
 
 #[no_mangle]
 fn kernel_main() {
+    #[cfg(test)]
+    test_main();
+
     let bin_shell = crate::elf::ElfHeader::new(include_bytes!("../shell"));
+    let mut macaddr = [0u8; 6];
+    crate::virtio_net::read_macaddr(&mut macaddr);
+    println!(
+        "macaddr: {:x}:{:x}:{:x}:{:x}:{:x}:{:x}",
+        macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]
+    );
 
     unsafe {
         memset(
@@ -120,7 +139,6 @@ fn handle_syscall(f: *mut TrapFrame) {
 
 #[no_mangle]
 #[link_section = ".text.boot"]
-#[repr(align(8))]
 #[naked]
 pub unsafe extern "C" fn kernel_entry() {
     core::arch::asm!(

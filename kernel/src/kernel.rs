@@ -12,6 +12,7 @@ mod constants;
 mod elf;
 mod error;
 mod mutex;
+mod net;
 mod paging;
 mod process;
 mod sbi;

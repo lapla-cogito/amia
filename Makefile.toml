@@ -4,6 +4,12 @@ KERNEL = "kernel/target/riscv64gc-unknown-none-elf/release/kernel"
 USER = "user/target/riscv64gc-unknown-none-elf/release/user"
 TCP_FORWARD_PORT = 18080
 
+[tasks.build]
+script = ['''
+(cd kernel && cargo build --release)
+(cd user && cargo build --release)
+''']
+
 [tasks.run]
 script = ['''
 #!/bin/bash

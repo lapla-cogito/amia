@@ -44,4 +44,38 @@ impl ArpEther {
             ip_target: target_ip,
         }
     }
+
+    pub fn response(
+        src_eth: crate::types::MacAddr,
+        src_ip: crate::types::Ipv4Addr,
+        target_eth: crate::types::MacAddr,
+        target_ip: crate::types::Ipv4Addr,
+    ) -> Self {
+        Self {
+            hdr: ArpHdr {
+                htype: ARP_HDR_ETHER as u16,
+                ptype: crate::net::common::ARP_PRO_IP as u16,
+                hlen: 6,
+                plen: 4,
+                op: Operation::ArpResponse,
+            },
+            mac_src: src_eth,
+            ip_src: src_ip,
+            mac_target: target_eth,
+            ip_target: target_ip,
+        }
+    }
+}
+
+pub struct ArpSender {
+    pub mac: crate::types::MacAddr,
+    pub ip: crate::types::Ipv4Addr,
+}
+
+impl ArpSender {
+    pub fn new(mac: crate::types::MacAddr, ip: crate::types::Ipv4Addr) -> Self {
+        Self { mac, ip }
+    }
+
+    pub fn send(&self, target_ip: crate::types::Ipv4Addr) {}
 }

@@ -4,10 +4,12 @@
 #![feature(fn_align)]
 #![feature(naked_functions)]
 #![feature(asm_const)]
+#![feature(alloc_error_handler)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
+mod allocator;
 mod constants;
 mod elf;
 mod error;

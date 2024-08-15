@@ -4,14 +4,17 @@
 #![feature(fn_align)]
 #![feature(naked_functions)]
 #![feature(asm_const)]
+#![feature(alloc_error_handler)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
+mod allocator;
 mod constants;
 mod elf;
 mod error;
 mod mutex;
+mod net;
 mod paging;
 mod process;
 mod sbi;
@@ -49,13 +52,31 @@ fn kernel_main() {
     #[cfg(test)]
     test_main();
 
+    unsafe { crate::virtio::init() };
+    crate::virtio_net::virtq_init();
+
+    for i in crate::virtio::VIRTIO_MMIO_BASE_CANDIDATE {
+        let vendor_id = unsafe { core::ptr::read_volatile((i + 0x008) as *const u32) };
+        let mut mac_addr: [u8; 6] = [0; 6];
+        if vendor_id != 0 {
+            print!("mac addr: ");
+            let mac_addr_start = i + 0x100;
+            for j in 0..6 {
+                mac_addr[j] =
+                    unsafe { core::ptr::read_volatile((mac_addr_start + (j as u64)) as *const u8) };
+                print!("{:02x}", mac_addr[j]);
+                if j != 5 {
+                    print!(":");
+                }
+            }
+            println!("");
+
+            let arp_request =
+                crate::net::arp::ArpEther::request(mac_addr, [10, 0, 2, 15], [10, 0, 2, 2]);
+        }
+    }
+
     let bin_shell = crate::elf::ElfHeader::new(include_bytes!("../shell"));
-    let mut macaddr = [0u8; 6];
-    crate::virtio_net::read_macaddr(&mut macaddr);
-    println!(
-        "macaddr: {:x}:{:x}:{:x}:{:x}:{:x}:{:x}",
-        macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]
-    );
 
     unsafe {
         memset(

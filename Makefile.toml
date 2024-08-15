@@ -2,6 +2,13 @@
 QEMU = "qemu-system-riscv64"
 KERNEL = "kernel/target/riscv64gc-unknown-none-elf/release/kernel"
 USER = "user/target/riscv64gc-unknown-none-elf/release/user"
+TCP_FORWARD_PORT = 18080
+
+[tasks.build]
+script = ['''
+(cd kernel && cargo build --release)
+(cd user && cargo build --release)
+''']
 
 [tasks.run]
 script = ['''
@@ -15,6 +22,10 @@ cp $USER kernel/shell
 (cd kernel && cargo build --release)
 
 $QEMU -machine virt -bios default -nographic -serial mon:stdio --no-reboot \
+  -chardev udp,id=m8,host=0.0.0.0,port=8888 \
+  -netdev user,id=net1,hostfwd=tcp::$TCP_FORWARD_PORT-:$TCP_FORWARD_PORT \
+  -object filter-dump,id=f1,netdev=net1,file=dump.dat \
+  -device virtio-net-device,netdev=usernet -netdev user,id=usernet \
   -d guest_errors \
   -kernel $KERNEL
 ''']
@@ -43,6 +54,9 @@ script = ['''
 TEST_TARGET=$(find kernel/target/riscv64gc-unknown-none-elf/debug/deps -type f ! \( -name "*.d" -o -name "*.rmeta" \) | head -n 1)
 
 $QEMU -machine virt -bios default -nographic -serial mon:stdio --no-reboot \
+  -chardev udp,id=m8,host=0.0.0.0,port=8888 \
+  -netdev user,id=net1,hostfwd=tcp::$TCP_FORWARD_PORT-:$TCP_FORWARD_PORT \
+  -device virtio-net-device,netdev=usernet -netdev user,id=usernet \
   -d guest_errors \
   -kernel $TEST_TARGET
 ''']

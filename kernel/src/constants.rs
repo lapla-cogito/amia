@@ -50,6 +50,9 @@ pub const VIRTIO_ENTRY: usize = 16;
 pub const VIRTIO_NET_MAX_PACKET_SIZE: usize = 1500;
 pub const VIRTIO_NET_BASE: usize = 0x10002000;
 
+pub const VIRTIO_NET_RX_QUEUE_IDX: u32 = 0;
+pub const VIRTIO_NET_TX_QUEUE_IDX: u32 = 1;
+
 const SIZE_OF_U16: usize = core::mem::size_of::<u16>();
 const SIZE_OF_U32: usize = core::mem::size_of::<u32>();
 const SIZE_OF_U64: usize = core::mem::size_of::<u64>();
